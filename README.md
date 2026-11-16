@@ -38,3 +38,16 @@ Exercício de exemplo nas aulas de Solução Mobile do curso de Engenharia de So
 
 ![App light mode](https://lh3.googleusercontent.com/pw/AP1GczPy1gSNUM_8dy9qGMlsN5_P-ef4RLqwsinpTKfGna7CEOR0CIeT4JsIXDptk0usB2BsF4gwk8cFQUvMpJzn27Wc4e0pfDffTUkXc23aCF-MhpukeTYqzOAfUL60407v58IqbZa2F03AKPin2CdpbXPClg=w614-h1328-s-no-gm?authuser=0)
 ![App dark mode](https://lh3.googleusercontent.com/pw/AP1GczNZg11Nd4spjsQuhjPg9Ldx6TQN3Mttor7kBIbm50aQMcGcksKTuVFjqXraenQmAY-fYYxbLg-kG695SB0Ve0Z9Ga6mGRCxdS0l9u1y0jihcjq1Etq1LnUK8PE4YBWapi8MocEepkkVQ0Z4nUBjAkEXDQ=w614-h1328-s-no-gm?authuser=0) 
+## Implementação do exercício
+
+- **Dark mode persistido** com `@react-native-async-storage/async-storage` (chave `@darkMode`).
+- **Permissão de localização** com `expo-location` (`requestForegroundPermissionsAsync`) e captura via `getCurrentPositionAsync`.
+- **Localizações persistidas** com `expo-sqlite` (`db.js`, tabela `locations`): cada captura é inserida no banco e exibida na lista; ao abrir o app, os registros são carregados do banco.
+
+### Como rodar
+
+```bash
+npm install
+npx expo install --fix
+npx expo start
+```

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
+import { Alert, FlatList, StyleSheet, View } from "react-native";
 import {
   Appbar,
   Button,
@@ -11,6 +11,12 @@ import {
 } from "react-native-paper";
 import myColors from "./assets/colors.json";
 import myColorsDark from "./assets/colorsDark.json";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import openDB from "./db";
+
+const DARK_MODE_KEY = "@darkMode";
+const db = openDB();
 
 export default function App() {
   const [isSwitchOn, setIsSwitchOn] = useState(false); // variável para controle do darkMode
@@ -26,42 +32,72 @@ export default function App() {
   });
 
   // load darkMode from AsyncStorage
-  async function loadDarkMode() {}
+  async function loadDarkMode() {
+    try {
+      const value = await AsyncStorage.getItem(DARK_MODE_KEY);
+      if (value !== null) {
+        setIsSwitchOn(JSON.parse(value));
+      }
+    } catch (e) {
+      console.log("Erro ao carregar darkMode", e);
+    }
+  }
 
   // darkMode switch event
   async function onToggleSwitch() {
-    setIsSwitchOn(!isSwitchOn);
+    const newValue = !isSwitchOn;
+    setIsSwitchOn(newValue);
+    try {
+      await AsyncStorage.setItem(DARK_MODE_KEY, JSON.stringify(newValue));
+    } catch (e) {
+      console.log("Erro ao salvar darkMode", e);
+    }
   }
 
   // get location (bottao capturar localização)
   async function getLocation() {
     setIsLoading(true);
+    try {
+      // solicita a permissão de localização ao usuário
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão negada", "Permita o acesso à localização para capturá-la.");
+        return;
+      }
 
-    // Localização fake, substituir por localização real do dispositivo
-    const coords = {
-      latitude: -23.5505199,
-      longitude: -46.6333094,
-    };
+      // captura a localização atual do dispositivo
+      const { coords } = await Location.getCurrentPositionAsync({});
 
-    setIsLoading(false);
+      // salva no banco SQLite
+      const result = await db.runAsync(
+        "INSERT INTO locations (latitude, longitude) VALUES (?, ?)",
+        [coords.latitude, coords.longitude]
+      );
+
+      // adiciona na lista em tela
+      setLocations((prev) => [
+        ...(prev || []),
+        { id: result.lastInsertRowId, latitude: coords.latitude, longitude: coords.longitude },
+      ]);
+    } catch (e) {
+      console.log("Erro ao capturar localização", e);
+      Alert.alert("Erro", "Não foi possível capturar a localização.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   // load locations from db sqlite - faz a leitura das localizações salvas no banco de dados
   async function loadLocations() {
     setIsLoading(true);
-
-    // generate fake locations
-    const locations = [];
-    for (let i = 0; i < 5; i++) {
-      locations.push({
-        id: i,
-        latitude: -23.5505199 + i,
-        longitude: -46.6333094 + i,
-      });
+    try {
+      const rows = await db.getAllAsync("SELECT * FROM locations ORDER BY id");
+      setLocations(rows);
+    } catch (e) {
+      console.log("Erro ao carregar localizações", e);
+    } finally {
+      setIsLoading(false);
     }
-
-    setLocations(locations);
-    setIsLoading(false);
   }
 
   // Use Effect para carregar o darkMode e as localizações salvas no banco de dados
@@ -84,7 +120,7 @@ export default function App() {
   return (
     <PaperProvider theme={theme}>
       <Appbar.Header>
-        <Appbar.Content title="My Location BASE" />
+        <Appbar.Content title="My Location" />
       </Appbar.Header>
       <View style={{ backgroundColor: theme.colors.background }}>
         <View style={styles.containerDarkMode}>
